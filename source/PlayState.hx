@@ -32,6 +32,7 @@ class PlayState extends FlxState
 	var bestScore:UInt;
 	var save:FlxSave;
 	var t:Float;
+	var autoLooping:Bool;
 	
 	/**
 	 * Function that is called up when to state is created to set it up.
@@ -169,9 +170,9 @@ class PlayState extends FlxState
 		FlxG.worldBounds.x = plane.x - 100;
 		FlxG.worldBounds.y = plane.y - 100;
 		//Lib.trace(bg.getScreenXY());
-		Lib.trace("world: " + FlxG.worldBounds);
-		Lib.trace("plane:" + plane);
-		Lib.trace(FlxG.worldBounds.containsFlxPoint(new FlxPoint(plane.x, plane.y)));
+		//Lib.trace("world: " + FlxG.worldBounds);
+		//Lib.trace("plane:" + plane);
+		//Lib.trace(FlxG.worldBounds.containsFlxPoint(new FlxPoint(plane.x, plane.y)));
 		
 	}
 	
@@ -197,12 +198,10 @@ class PlayState extends FlxState
 				pipes.getFirstAlive().set_alive(false);
 				pipes.getFirstAlive().alpha = 0.5;
 				pipes.getFirstAlive().set_alive(false);
-				//pipes.remove(nextPipe);
-				//pipes.remove(pipes.getFirstAlive());
 				setScore(score+1);
 			}
 		}
-		trace(pipes);
+		//trace(pipes);
 	}
 	
 	function collide(planeObj:FlxObject, pipesObj:FlxObject)
@@ -248,9 +247,12 @@ class PlayState extends FlxState
 	
 	function updatePlane()
 	{
-		if (FlxG.mouse.pressed)
+		//	si le joueur appuie sur le bouton ou qu'on est en auto-looping,
+		//	on rotationne progressivement la vélocité de l'avion
+		if (FlxG.mouse.pressed || autoLooping)
 		{
-			//var rotatedVelocity:FlxPoint = FlxVector.rotateVector(this.plane.velocity, -LOOPING_SPEED * controlIsDown);
+			Lib.trace("mouse pressed=" + FlxG.mouse.pressed);
+			Lib.trace("autolooping=" + autoLooping);
 			var rotatedVelocity:FlxVector = new FlxVector(plane.velocity.x, plane.velocity.y);
 			rotatedVelocity.rotateByDegrees(LOOPING_SPEED_DEG * controlIsUp);
 			plane.velocity.x = rotatedVelocity.x;
@@ -258,8 +260,34 @@ class PlayState extends FlxState
 			
 			this.plane.angle = rotatedVelocity.degrees;
 		}
-		if (FlxG.mouse.justPressed)
+		
+		//	à la fin du clic, on inverse le contrôle ou on passe en auto-looping si le looping n'est pas terminé
+		if (FlxG.mouse.justReleased)
 		{
+			Lib.trace("justReleased");
+			Lib.trace("plane.velocity.x=" + plane.velocity.x);
+			//	si à la fin du looping, l'avion avance, c'est cool
+			if (plane.velocity.x > 0)
+			{
+				//Lib.trace("plane.velocity.x > 0 -> inversion");
+				controlIsUp *= -1;
+			}
+			//	s'il recule, on passe en auto-looping
+			else
+			{
+				//Lib.trace("plane.velocity.x < 0 -> passage en autolooping");
+				autoLooping = true;
+			}
+		}
+		
+		
+		
+		//	fin de l'auto-looping
+		if (autoLooping && plane.velocity.x > 0 && Math.abs(plane.velocity.y) < 0.25)
+		{
+			Lib.trace(autoLooping + "&&" + plane.velocity.x + ">0&&abs(" + plane.velocity.y + ")<50");
+			Lib.trace("fin d'autolooping");
+			autoLooping = false;
 			controlIsUp *= -1;
 		}
 	}
