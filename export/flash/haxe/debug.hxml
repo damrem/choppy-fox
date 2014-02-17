@@ -1,0 +1,15 @@
+-main ApplicationMain 
+-lib openfl
+-lib flixel
+-lib flixel-addons
+-cp source
+-D tools=1.2.9
+-D fdb
+-D web
+-swf-version 11.2
+-swf export/flash/bin/loopyplane.swf
+-swf-header 480:320:60:000000
+-cp export/flash/haxe
+#--remap nme:flash
+--no-inline
+-debug
