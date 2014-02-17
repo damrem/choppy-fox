@@ -102,7 +102,7 @@ class PlayState extends FlxState
 		
 		setScore(0);
 		
-		controlIsUp = 1;
+		controlIsUp = -1;
 		
 		pipes.forEach(recyclePipe);
 		
@@ -247,7 +247,7 @@ class PlayState extends FlxState
 	
 	function updatePlane()
 	{
-		//	si le joueur appuie sur le bouton ou qu'on est en auto-looping,
+		//	si le bouton est enfoncé ou qu'on est en auto-looping,
 		//	on rotationne progressivement la vélocité de l'avion
 		if (FlxG.mouse.pressed || autoLooping)
 		{
@@ -262,7 +262,7 @@ class PlayState extends FlxState
 		}
 		
 		//	à la fin du clic, on inverse le contrôle ou on passe en auto-looping si le looping n'est pas terminé
-		if (FlxG.mouse.justReleased)
+		if (FlxG.mouse.justReleased && !autoLooping)
 		{
 			Lib.trace("justReleased");
 			Lib.trace("plane.velocity.x=" + plane.velocity.x);
@@ -280,8 +280,6 @@ class PlayState extends FlxState
 			}
 		}
 		
-		
-		
 		//	fin de l'auto-looping
 		if (autoLooping && plane.velocity.x > 0 && Math.abs(plane.velocity.y) < 0.25)
 		{
@@ -289,6 +287,12 @@ class PlayState extends FlxState
 			Lib.trace("fin d'autolooping");
 			autoLooping = false;
 			controlIsUp *= -1;
+		}
+		
+		var object:FlxObject = cast(plane, FlxObject);
+		if (!object.isOnScreen())
+		{
+			gameOver();
 		}
 	}
 	
@@ -314,6 +318,8 @@ class PlayState extends FlxState
 		plane.velocity.x = plane.velocity.y = 0.0;
 		
 		add(gameOverLabel);
+		
+		FlxG.camera.shake(0.01, 0.5);
 		
 		//if(score 
 	}
