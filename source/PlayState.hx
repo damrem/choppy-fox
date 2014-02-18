@@ -111,6 +111,8 @@ class PlayState extends FlxState
 		plane.velocity.x = 100.0;
 		plane.velocity.y = 0.0;
 		plane.angle = 0.0;
+		
+		maxPlaneX = plane.x;
 	}
 	
 	function recyclePipe(pipe:FlxSprite) 
@@ -209,17 +211,39 @@ class PlayState extends FlxState
 		gameOver();
 	}
 	
+	/**
+	 * Modulo du plus loin que l'avion soit allé pour génération de tuyaux.
+	 */
+	var prevModulo:Float;
+	/**
+	 * Le plus loin que l'avion soit allé pour génération de tuyaux.
+	 */
+	var maxPlaneX:Float;
+	
+	inline static var PIPE_SPACE:Float = 200.0;
+	
+	inline static var HOLE_HEIGHT_MIN:Float = 50.0;
+	inline static var HOLE_HEIGHT_MAX:Float = 75.0;
+	
+	inline static var PIPE_Y_SHIFT_MAX:Float = 50.0;
+	
 	function updatePipes(t:Float)
 	{
+		if (plane.x > maxPlaneX)	maxPlaneX = plane.x;
+		Lib.trace(maxPlaneX);
 		
-		var creatingOccurence = Math.random();
+		var currModulo:Float = maxPlaneX % PIPE_SPACE;
+		var isCreating = (currModulo < prevModulo);
+		prevModulo = currModulo;
+		
+		//var creatingOccurence = Math.random();
 		//Lib.trace(creatingOccurence);
-		var isCreating = creatingOccurence < 0.01;
+		//var isCreating = creatingOccurence < 0.01;
 		
 		if (isCreating)
 		{
-			var yShift = FlxRandom.intRanged( -25, 25);
-			var space = FlxRandom.intRanged(75, 100);
+			var yShift = FlxRandom.intRanged( cast(-PIPE_Y_SHIFT_MAX/2, Int), cast(PIPE_Y_SHIFT_MAX/2, Int));
+			var space = FlxRandom.intRanged(cast(HOLE_HEIGHT_MIN, Int), cast(HOLE_HEIGHT_MAX, Int));
 			
 			var pipeTop:FlxSprite = createPipe();
 			pipeTop.scale.x = -1;
