@@ -64,11 +64,16 @@ class PlayState extends FlxState
 		
 		gameOverLabel = createMessage("GAME OVER!");
 		
+		
+		
+		
+		
+		
 	}
 	
 	private function createPlane():FlxSprite
 	{
-		FlxG.debugger.drawDebug = true;
+		
 		var plane = new FlxSprite();
 		plane.loadGraphic("assets/images/plane.png", true, false, 48, 33, true, 'plane');
 		plane.animation.add('rotate', [0, 1], 10);
@@ -168,6 +173,10 @@ class PlayState extends FlxState
 		else
 		{
 			this.updateWaiting();
+		}
+		if(FlxG.keys.justReleased.D)
+		{
+			FlxG.debugger.drawDebug = !FlxG.debugger.drawDebug;
 		}
 		super.update();
 	}
