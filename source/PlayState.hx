@@ -68,10 +68,16 @@ class PlayState extends FlxState
 	
 	private function createPlane():FlxSprite
 	{
+		FlxG.debugger.drawDebug = true;
 		var plane = new FlxSprite();
 		plane.loadGraphic("assets/images/plane.png", true, false, 48, 33, true, 'plane');
 		plane.animation.add('rotate', [0, 1], 10);
 		plane.setOriginToCenter();
+		
+		plane.width = plane.height = 25;
+		//plane.height *= 0.75;
+		plane.centerOffsets();
+		
 		plane.scrollFactor.y = 0.0;
 		return plane;
 	}
@@ -186,6 +192,16 @@ class PlayState extends FlxState
 		updatePlane();
 		updateScore();
 		FlxG.collide(plane, pipes, collide);
+		//pipes.forEach(checkPlaneCollision);
+		
+	}
+	
+	function checkPlaneCollision(pipe:FlxSprite) 
+	{
+		if (FlxG.pixelPerfectOverlap(plane, pipe))
+		{
+			collide(plane, pipe);
+		}
 	}
 	
 	function updateScore()
