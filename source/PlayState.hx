@@ -79,7 +79,7 @@ class PlayState extends FlxState
 		
 		MouseEventManager.addSprite(musicCredit, null, navigateToPlayOnLoop);
 		
-		gameOverLabel = createMessage("GAME OVER!");
+		gameOverLabel = createMessage("GAME OVER!\nCLICK TO RESTART...");
 		
 		//explode();
 		
@@ -113,7 +113,7 @@ class PlayState extends FlxState
 	function createMessage(msg:String):FlxText
 	{
 		var stg:Stage = FlxG.stage;
-		var w:Int = 200;
+		var w:Int = 400;
 		var label:FlxText = new FlxText((stg.stageWidth - w) / 2, stg.stageHeight / 2, w, msg, 16);
 		label.alignment = 'center';
 		label.scrollFactor.x = label.scrollFactor.y = 0.0;
