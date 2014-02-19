@@ -1,4 +1,6 @@
 package ;
+
+import flixel.plugin.MouseEventManager;
 import flash.display.Stage;
 import flash.Lib;
 import flixel.addons.display.FlxBackdrop;
@@ -22,6 +24,9 @@ import flixel.util.FlxVector;
  */
 class PlayState extends FlxState
 {
+	
+	var musicCredit:FlxText;
+	
 	var plane:FlxSprite;
 	var clickToStartMessage:FlxText;
 	var isPlaying:Bool;
@@ -29,7 +34,7 @@ class PlayState extends FlxState
 	inline static var LOOPING_SPEED_DEG:Float = 2.5;
 	var bg:FlxBackdrop;
 	var pipes:FlxTypedGroup<FlxSprite>;
-	//var gameOverLabel:FlxText;
+	var gameOverLabel:FlxText;
 	var scoreLabel:FlxText;
 	var score:UInt;
 	var bestScore:UInt;
@@ -42,6 +47,8 @@ class PlayState extends FlxState
 	 */
 	override public function create():Void
 	{
+		FlxG.sound.playMusic("assets/music/POL-rocket-station-short.wav", 0.1);
+		
 		Lib.trace("create");
 		super.create();
 		
@@ -65,13 +72,25 @@ class PlayState extends FlxState
 		
 		reset();
 		
-		//gameOverLabel = createMessage("GAME OVER!");
+		musicCredit = new FlxText(FlxG.width - 210, FlxG.height - 20, 200, "Music by PlayOnLoop");
+		musicCredit.scrollFactor.x = musicCredit.scrollFactor.y = 0;
+		musicCredit.alignment = 'right';
+		add(musicCredit);
+		
+		MouseEventManager.addSprite(musicCredit, null, navigateToPlayOnLoop);
+		
+		gameOverLabel = createMessage("GAME OVER!");
 		
 		//explode();
 		
 		
 		
 		
+	}
+	
+	function navigateToPlayOnLoop(sprite:FlxSprite)
+	{
+		FlxG.openURL("http://www.playonloop.com/2013-music-loops/rocket-station/", '_blank');
 	}
 	
 	private function createPlane():FlxSprite
@@ -144,7 +163,7 @@ class PlayState extends FlxState
 	{
 		Lib.trace("start");
 		remove(clickToStartMessage);
-		//remove(gameOverLabel);
+		remove(gameOverLabel);
 		
 		add(scoreLabel);
 		
@@ -236,7 +255,9 @@ class PlayState extends FlxState
 				pipes.getFirstAlive().set_alive(false);
 				pipes.getFirstAlive().alpha = 0.5;
 				pipes.getFirstAlive().set_alive(false);
-				setScore(score+1);
+				setScore(score + 1);
+				
+				FlxG.sound.play("assets/sounds/score.mp3");
 			}
 		}
 		//trace(pipes);
@@ -270,6 +291,8 @@ class PlayState extends FlxState
 		
 		explosion.start(true, EXPLOSION_LIFESPAN, 0.1, EXPLOSION_QUANTITY, EXPLOSION_LIFESPAN);
 		explosion.update();
+		
+		FlxG.sound.play("assets/sounds/explosion.mp3");
 	}
 	
 	function collide(planeObj:FlxObject, pipesObj:FlxObject)
@@ -385,6 +408,8 @@ class PlayState extends FlxState
 		if (!object.isOnScreen())
 		{
 			gameOver();
+			
+			explode();
 		}
 	}
 	
@@ -409,7 +434,7 @@ class PlayState extends FlxState
 		
 		plane.velocity.x = plane.velocity.y = 0.0;
 		
-		//add(gameOverLabel);
+		add(gameOverLabel);
 		
 		FlxG.camera.shake(0.01, 0.5);
 		
