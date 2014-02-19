@@ -2,6 +2,9 @@ package ;
 import flash.display.Stage;
 import flash.Lib;
 import flixel.addons.display.FlxBackdrop;
+import flixel.effects.particles.FlxEmitterExt;
+import flixel.effects.particles.FlxParticle;
+import flixel.effects.particles.FlxTypedEmitter.Bounds;
 import flixel.FlxCamera;
 import flixel.FlxG;
 import flixel.FlxObject;
@@ -26,7 +29,7 @@ class PlayState extends FlxState
 	inline static var LOOPING_SPEED_DEG:Float = 2.5;
 	var bg:FlxBackdrop;
 	var pipes:FlxTypedGroup<FlxSprite>;
-	var gameOverLabel:FlxText;
+	//var gameOverLabel:FlxText;
 	var scoreLabel:FlxText;
 	var score:UInt;
 	var bestScore:UInt;
@@ -62,9 +65,9 @@ class PlayState extends FlxState
 		
 		reset();
 		
-		gameOverLabel = createMessage("GAME OVER!");
+		//gameOverLabel = createMessage("GAME OVER!");
 		
-		
+		//explode();
 		
 		
 		
@@ -84,6 +87,7 @@ class PlayState extends FlxState
 		plane.centerOffsets();
 		
 		plane.scrollFactor.y = 0.0;
+		
 		return plane;
 	}
 	
@@ -119,8 +123,7 @@ class PlayState extends FlxState
 		
 		var stg:Stage = FlxG.stage;
 		plane.setPosition(stg.stageWidth / 4, stg.stageHeight / 2);
-		plane.velocity.x = 100.0;
-		plane.velocity.y = 0.0;
+		plane.velocity.x = plane.velocity.y = 0.0;
 		plane.angle = 0.0;
 		
 		maxPlaneX = plane.x;
@@ -141,12 +144,13 @@ class PlayState extends FlxState
 	{
 		Lib.trace("start");
 		remove(clickToStartMessage);
-		remove(gameOverLabel);
+		//remove(gameOverLabel);
 		
 		add(scoreLabel);
 		
+		plane.visible = true;
 		plane.animation.play('rotate');
-		
+		plane.velocity.x = 100.0;
 		
 		isPlaying = true;
 	}
@@ -178,6 +182,13 @@ class PlayState extends FlxState
 		{
 			FlxG.debugger.drawDebug = !FlxG.debugger.drawDebug;
 		}
+		/*
+		if (FlxG.mouse.justReleased)
+		{
+			explode(FlxG.mouse.x, FlxG.mouse.y);
+		}
+		*/
+		
 		super.update();
 	}
 	
@@ -185,7 +196,7 @@ class PlayState extends FlxState
 	{
 		//FIXME le x du worldbounds augmente un peu trop et l'avion se retrouve hors-world
 		FlxG.worldBounds.x = plane.x - 100;
-		FlxG.worldBounds.y = plane.y - 100;
+		//FlxG.worldBounds.y = plane.y - 100;
 		//Lib.trace(bg.getScreenXY());
 		//Lib.trace("world: " + FlxG.worldBounds);
 		//Lib.trace("plane:" + plane);
@@ -231,8 +242,40 @@ class PlayState extends FlxState
 		//trace(pipes);
 	}
 	
+	var explosion:FlxEmitterExt;
+	
+	static inline var EXPLOSION_LIFESPAN:Float = 0.25;
+	static inline var EXPLOSION_DISTANCE:Float = 0.0;
+	static inline var EXPLOSION_LIFESPAN_RANGE:Float = 0.25;
+	static inline var EXPLOSION_DISTANCE_RANGE:Float = 75.0;
+	static inline var EXPLOSION_QUANTITY:Int = 100;
+	
+	function explode()
+	{
+		//Lib.trace("explode(" + X + ", " + Y);
+		//Lib.trace(plane.y);
+		plane.visible = false;
+		
+		explosion = new FlxEmitterExt();
+		
+		explosion.setMotion(0, EXPLOSION_DISTANCE, EXPLOSION_LIFESPAN, 360, EXPLOSION_DISTANCE_RANGE, EXPLOSION_LIFESPAN_RANGE);// (0, 0.5, 0.05, 360, 200, 1.8);
+		
+		explosion.makeParticles("assets/images/explosion-particle.png", EXPLOSION_QUANTITY, 0, true, 0);
+		explosion.setAlpha(1, 1, 0, 0);
+		
+		explosion.at(plane);
+		add(explosion);
+		
+		explosion.setAll('scrollFactor', new FlxPoint(1.0, 0.0));
+		
+		explosion.start(true, EXPLOSION_LIFESPAN, 0.1, EXPLOSION_QUANTITY, EXPLOSION_LIFESPAN);
+		explosion.update();
+	}
+	
 	function collide(planeObj:FlxObject, pipesObj:FlxObject)
 	{
+		explode();
+		
 		gameOver();
 	}
 	
@@ -255,7 +298,7 @@ class PlayState extends FlxState
 	function updatePipes(t:Float)
 	{
 		if (plane.x > maxPlaneX)	maxPlaneX = plane.x;
-		Lib.trace(maxPlaneX);
+		//Lib.trace(maxPlaneX);
 		
 		var currModulo:Float = maxPlaneX % PIPE_SPACE;
 		var isCreating = (currModulo < prevModulo);
@@ -300,8 +343,8 @@ class PlayState extends FlxState
 		//	on rotationne progressivement la vélocité de l'avion
 		if (FlxG.mouse.pressed || autoLooping)
 		{
-			Lib.trace("mouse pressed=" + FlxG.mouse.pressed);
-			Lib.trace("autolooping=" + autoLooping);
+			//Lib.trace("mouse pressed=" + FlxG.mouse.pressed);
+			//Lib.trace("autolooping=" + autoLooping);
 			var rotatedVelocity:FlxVector = new FlxVector(plane.velocity.x, plane.velocity.y);
 			rotatedVelocity.rotateByDegrees(LOOPING_SPEED_DEG * controlIsUp);
 			plane.velocity.x = rotatedVelocity.x;
@@ -313,8 +356,8 @@ class PlayState extends FlxState
 		//	à la fin du clic, on inverse le contrôle ou on passe en auto-looping si le looping n'est pas terminé
 		if (FlxG.mouse.justReleased && !autoLooping)
 		{
-			Lib.trace("justReleased");
-			Lib.trace("plane.velocity.x=" + plane.velocity.x);
+			//Lib.trace("justReleased");
+			//Lib.trace("plane.velocity.x=" + plane.velocity.x);
 			//	si à la fin du looping, l'avion avance, c'est cool
 			if (plane.velocity.x > 0)
 			{
@@ -332,8 +375,8 @@ class PlayState extends FlxState
 		//	fin de l'auto-looping
 		if (autoLooping && plane.velocity.x > 0 && Math.abs(plane.velocity.y) < 0.25)
 		{
-			Lib.trace(autoLooping + "&&" + plane.velocity.x + ">0&&abs(" + plane.velocity.y + ")<50");
-			Lib.trace("fin d'autolooping");
+			//Lib.trace(autoLooping + "&&" + plane.velocity.x + ">0&&abs(" + plane.velocity.y + ")<50");
+			//Lib.trace("fin d'autolooping");
 			autoLooping = false;
 			controlIsUp *= -1;
 		}
@@ -366,7 +409,7 @@ class PlayState extends FlxState
 		
 		plane.velocity.x = plane.velocity.y = 0.0;
 		
-		add(gameOverLabel);
+		//add(gameOverLabel);
 		
 		FlxG.camera.shake(0.01, 0.5);
 		
