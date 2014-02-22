@@ -24,14 +24,17 @@ import flixel.util.FlxVector;
  */
 class PlayState extends FlxState
 {
+	inline static var MAX_SPEED:Float = 125.0;
+	inline static var FORWARD:Float = 150.0;
+	inline static var GRAVITY:Float = 100.0;
+	inline static var UP:Float = -100.0;
+	inline static var FRICTION:Float = 50.0;
 	
 	var musicCredit:FlxText;
-	
 	var plane:FlxSprite;
 	var clickToStartMessage:FlxText;
 	var isPlaying:Bool;
 	var controlIsUp:Int;
-	inline static var LOOPING_SPEED_DEG:Float = 2.5;
 	var bg:FlxBackdrop;
 	var pipes:FlxTypedGroup<FlxSprite>;
 	var gameOverLabel:FlxText;
@@ -75,6 +78,7 @@ class PlayState extends FlxState
 		musicCredit = new FlxText(FlxG.width - 210, FlxG.height - 20, 200, "Music by PlayOnLoop");
 		musicCredit.scrollFactor.x = musicCredit.scrollFactor.y = 0;
 		musicCredit.alignment = 'right';
+		musicCredit.alpha = 0.1;
 		add(musicCredit);
 		
 		MouseEventManager.addSprite(musicCredit, null, navigateToPlayOnLoop);
@@ -97,12 +101,14 @@ class PlayState extends FlxState
 	{
 		
 		var plane = new FlxSprite();
-		plane.loadGraphic("assets/images/plane.png", true, false, 48, 33, true, 'plane');
-		plane.animation.add('rotate', [0, 1], 10);
+		plane.loadGraphic("assets/images/tails.png", true, false, 36, 36, true, 'plane');
+		plane.animation.add('up', [0, 1, 2], 10);
+		plane.animation.add('forward', [3, 4, 5], 10);
 		plane.setOriginToCenter();
 		
 		plane.width = plane.height = 25;
-		//plane.height *= 0.75;
+		plane.maxVelocity.x = MAX_SPEED;
+		plane.drag.x = FRICTION;
 		plane.centerOffsets();
 		
 		plane.scrollFactor.y = 0.0;
@@ -168,10 +174,32 @@ class PlayState extends FlxState
 		add(scoreLabel);
 		
 		plane.visible = true;
-		plane.animation.play('rotate');
-		plane.velocity.x = 100.0;
+		plane.animation.play('forward');
+		//plane.velocity.x = 100.0;
+		//plane.acceleration.y = JETPACK_INTENSITY;
 		
 		isPlaying = true;
+	}
+	
+	function moveForward(startAnim:Bool)
+	{
+		plane.acceleration.x = FORWARD;
+		plane.acceleration.y = GRAVITY;
+		if (startAnim)
+		{
+			plane.animation.play('forward');
+		}
+		
+	}
+	
+	function moveUp(startAnim:Bool)
+	{
+		plane.acceleration.x = 0.0;
+		plane.acceleration.y = UP;
+		if (startAnim)
+		{
+			plane.animation.play('up');
+		}
 	}
 
 	/**
@@ -349,13 +377,14 @@ class PlayState extends FlxState
 			add(pipeTop);
 			add(pipeBottom);
 		}
-	}
 	
+	}
 	function createPipe():FlxSprite
 	{
 		var pipe = new FlxSprite( 0, 0, "assets/images/pipe.png");
 		pipe.scrollFactor.y = 0;
 		pipe.immovable = true;
+		//pipe.velocity.y = FlxRandom.floatRanged( -10, 10);
 		pipes.add(pipe);
 		return pipe;
 	}
@@ -364,45 +393,19 @@ class PlayState extends FlxState
 	{
 		//	si le bouton est enfoncé ou qu'on est en auto-looping,
 		//	on rotationne progressivement la vélocité de l'avion
-		if (FlxG.mouse.pressed || autoLooping)
+		if (FlxG.mouse.pressed)
 		{
-			//Lib.trace("mouse pressed=" + FlxG.mouse.pressed);
-			//Lib.trace("autolooping=" + autoLooping);
-			var rotatedVelocity:FlxVector = new FlxVector(plane.velocity.x, plane.velocity.y);
-			rotatedVelocity.rotateByDegrees(LOOPING_SPEED_DEG * controlIsUp);
-			plane.velocity.x = rotatedVelocity.x;
-			plane.velocity.y = rotatedVelocity.y;
-			
-			this.plane.angle = rotatedVelocity.degrees;
+			moveUp(FlxG.mouse.justPressed);
+		}
+		else
+		{
+			moveForward(FlxG.mouse.justReleased);
 		}
 		
-		//	à la fin du clic, on inverse le contrôle ou on passe en auto-looping si le looping n'est pas terminé
-		if (FlxG.mouse.justReleased && !autoLooping)
-		{
-			//Lib.trace("justReleased");
-			//Lib.trace("plane.velocity.x=" + plane.velocity.x);
-			//	si à la fin du looping, l'avion avance, c'est cool
-			if (plane.velocity.x > 0)
-			{
-				//Lib.trace("plane.velocity.x > 0 -> inversion");
-				controlIsUp *= -1;
-			}
-			//	s'il recule, on passe en auto-looping
-			else
-			{
-				//Lib.trace("plane.velocity.x < 0 -> passage en autolooping");
-				autoLooping = true;
-			}
-		}
 		
-		//	fin de l'auto-looping
-		if (autoLooping && plane.velocity.x > 0 && Math.abs(plane.velocity.y) < 0.25)
-		{
-			//Lib.trace(autoLooping + "&&" + plane.velocity.x + ">0&&abs(" + plane.velocity.y + ")<50");
-			//Lib.trace("fin d'autolooping");
-			autoLooping = false;
-			controlIsUp *= -1;
-		}
+		
+		
+		
 		
 		var object:FlxObject = cast(plane, FlxObject);
 		if (!object.isOnScreen())
@@ -432,7 +435,7 @@ class PlayState extends FlxState
 		Lib.trace("gameOver");
 		this.isPlaying = false;
 		
-		plane.velocity.x = plane.velocity.y = 0.0;
+		plane.velocity.x = plane.velocity.y = plane.acceleration.x = plane.acceleration.y = 0.0;
 		
 		add(gameOverLabel);
 		
