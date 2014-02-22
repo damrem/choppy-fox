@@ -104,6 +104,7 @@ class PlayState extends FlxState
 		plane.loadGraphic("assets/images/tails.png", true, false, 36, 36, true, 'plane');
 		plane.animation.add('up', [0, 1, 2], 10);
 		plane.animation.add('forward', [3, 4, 5], 10);
+		plane.animation.add('lose', [6, 7], 10);
 		plane.setOriginToCenter();
 		
 		plane.width = plane.height = 25;
@@ -320,14 +321,16 @@ class PlayState extends FlxState
 		explosion.start(true, EXPLOSION_LIFESPAN, 0.1, EXPLOSION_QUANTITY, EXPLOSION_LIFESPAN);
 		explosion.update();
 		
-		FlxG.sound.play("assets/sounds/explosion.mp3");
+		
 	}
 	
 	function collide(planeObj:FlxObject, pipesObj:FlxObject)
 	{
-		explode();
+		//explode();
 		
 		gameOver();
+		
+		
 	}
 	
 	/**
@@ -412,7 +415,7 @@ class PlayState extends FlxState
 		{
 			gameOver();
 			
-			explode();
+			//explode();
 		}
 	}
 	
@@ -435,12 +438,14 @@ class PlayState extends FlxState
 		Lib.trace("gameOver");
 		this.isPlaying = false;
 		
-		plane.velocity.x = plane.velocity.y = plane.acceleration.x = plane.acceleration.y = 0.0;
+		plane.acceleration.x = 0.0;
+		plane.acceleration.y = GRAVITY;
+		plane.animation.play('lose');
 		
 		add(gameOverLabel);
 		
 		FlxG.camera.shake(0.01, 0.5);
-		
+		FlxG.sound.play("assets/sounds/explosion.mp3");
 		//if(score 
 	}
 }
