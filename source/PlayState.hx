@@ -1,5 +1,6 @@
 package ;
 
+import flixel.group.FlxSpriteGroup;
 import flixel.plugin.MouseEventManager;
 import flash.display.Stage;
 import flash.Lib;
@@ -18,6 +19,7 @@ import flixel.util.FlxPoint;
 import flixel.util.FlxRandom;
 import flixel.util.FlxSave;
 import flixel.util.FlxVector;
+import flixel.group.FlxGroup;
 
 /**
  * A FlxState which can be used for the actual gameplay.
@@ -31,12 +33,12 @@ class PlayState extends FlxState
 	inline static var FRICTION:Float = 50.0;
 	
 	var musicCredit:FlxText;
-	var plane:FlxSprite;
+	var hero:FlxSprite;
 	var clickToStartMessage:FlxText;
 	var isPlaying:Bool;
 	var controlIsUp:Int;
 	var bg:FlxBackdrop;
-	var pipes:FlxTypedGroup<FlxSprite>;
+	var traps:FlxTypedGroup<FlxSprite>;
 	var gameOverLabel:FlxText;
 	var scoreLabel:FlxText;
 	var score:UInt;
@@ -57,16 +59,18 @@ class PlayState extends FlxState
 		
 		//save = new FlxSave();
 		
-		bg = new FlxBackdrop("assets/images/sprite background mugen 0017.png", 0.8, 0.0, true, false);
+		bg = new FlxBackdrop("assets/images/bg.png", 0.8, 0.0, true, false);
 		add(bg);
 		
-		plane = createPlane();
-		add(plane);
+		hero = createPlane();
+		add(hero);
 		
-		FlxG.camera.follow(this.plane, FlxCamera.STYLE_PLATFORMER);
+		FlxG.camera.follow(this.hero, FlxCamera.STYLE_PLATFORMER);
 		
 		
-		pipes = new FlxTypedGroup<FlxSprite>();
+		traps = new FlxTypedGroup<FlxSprite>();
+		rings = new FlxSpriteGroup(10);
+		rings.scrollFactor.y = 0;
 		
 		clickToStartMessage = this.createMessage('CLICK TO START');
 		add(this.clickToStartMessage);
@@ -145,14 +149,14 @@ class PlayState extends FlxState
 		
 		controlIsUp = -1;
 		
-		pipes.forEach(recyclePipe);
+		traps.forEach(recyclePipe);
 		
 		var stg:Stage = FlxG.stage;
-		plane.setPosition(stg.stageWidth / 4, stg.stageHeight / 2);
-		plane.velocity.x = plane.velocity.y = 0.0;
-		plane.angle = 0.0;
+		hero.setPosition(stg.stageWidth / 4, stg.stageHeight / 2);
+		hero.velocity.x = hero.velocity.y = 0.0;
+		hero.angle = 0.0;
 		
-		maxPlaneX = plane.x;
+		maxHeroX = hero.x;
 	}
 	
 	function recyclePipe(pipe:FlxSprite) 
@@ -174,32 +178,33 @@ class PlayState extends FlxState
 		
 		add(scoreLabel);
 		
-		plane.visible = true;
-		plane.animation.play('forward');
+		hero.visible = true;
+		hero.animation.play('forward');
 		//plane.velocity.x = 100.0;
 		//plane.acceleration.y = JETPACK_INTENSITY;
 		
 		isPlaying = true;
+		waitToRestart = false;
 	}
 	
 	function moveForward(startAnim:Bool)
 	{
-		plane.acceleration.x = FORWARD;
-		plane.acceleration.y = GRAVITY;
+		hero.acceleration.x = FORWARD;
+		hero.acceleration.y = GRAVITY;
 		if (startAnim)
 		{
-			plane.animation.play('forward');
+			hero.animation.play('forward');
 		}
 		
 	}
 	
 	function moveUp(startAnim:Bool)
 	{
-		plane.acceleration.x = 0.0;
-		plane.acceleration.y = UP;
+		hero.acceleration.x = 0.0;
+		hero.acceleration.y = UP;
 		if (startAnim)
 		{
-			plane.animation.play('up');
+			hero.animation.play('up');
 		}
 	}
 
@@ -243,7 +248,7 @@ class PlayState extends FlxState
 	function updateWorldBounds()
 	{
 		//FIXME le x du worldbounds augmente un peu trop et l'avion se retrouve hors-world
-		FlxG.worldBounds.x = plane.x - 100;
+		FlxG.worldBounds.x = hero.x - 100;
 		//FlxG.worldBounds.y = plane.y - 100;
 		//Lib.trace(bg.getScreenXY());
 		//Lib.trace("world: " + FlxG.worldBounds);
@@ -256,34 +261,24 @@ class PlayState extends FlxState
 	{
 		//Lib.trace("updatePlaying");
 		updateWorldBounds();
-		updatePipes(t);
-		updatePlane();
+		generateLandscape(t);
+		updateHero();
 		updateScore();
-		FlxG.collide(plane, pipes, collide);
-		//pipes.forEach(checkPlaneCollision);
-		
-	}
-	
-	function checkPlaneCollision(pipe:FlxSprite) 
-	{
-		if (FlxG.pixelPerfectOverlap(plane, pipe))
-		{
-			collide(plane, pipe);
-		}
+		FlxG.collide(hero, traps, collide);
 	}
 	
 	function updateScore()
 	{
 		//Lib.trace("updateScore");
-		var nextPipe:FlxSprite = pipes.getFirstAlive();
+		var nextPipe:FlxSprite = traps.getFirstAlive();
 		if (nextPipe != null)
 		{
-			if(plane.x > nextPipe.x)
+			if(hero.x > nextPipe.x)
 			{
-				pipes.getFirstAlive().alpha = 0.5;
-				pipes.getFirstAlive().set_alive(false);
-				pipes.getFirstAlive().alpha = 0.5;
-				pipes.getFirstAlive().set_alive(false);
+				traps.getFirstAlive().alpha = 0.5;
+				traps.getFirstAlive().set_alive(false);
+				traps.getFirstAlive().alpha = 0.5;
+				traps.getFirstAlive().set_alive(false);
 				setScore(score + 1);
 				
 				FlxG.sound.play("assets/sounds/score.mp3");
@@ -304,7 +299,7 @@ class PlayState extends FlxState
 	{
 		//Lib.trace("explode(" + X + ", " + Y);
 		//Lib.trace(plane.y);
-		plane.visible = false;
+		hero.visible = false;
 		
 		explosion = new FlxEmitterExt();
 		
@@ -313,7 +308,7 @@ class PlayState extends FlxState
 		explosion.makeParticles("assets/images/explosion-particle.png", EXPLOSION_QUANTITY, 0, true, 0);
 		explosion.setAlpha(1, 1, 0, 0);
 		
-		explosion.at(plane);
+		explosion.at(hero);
 		add(explosion);
 		
 		explosion.setAll('scrollFactor', new FlxPoint(1.0, 0.0));
@@ -324,8 +319,9 @@ class PlayState extends FlxState
 		
 	}
 	
-	function collide(planeObj:FlxObject, pipesObj:FlxObject)
+	function collide(hero:FlxObject, trap:FlxObject)
 	{
+		Lib.trace("collide");
 		//explode();
 		
 		gameOver();
@@ -340,82 +336,79 @@ class PlayState extends FlxState
 	/**
 	 * Le plus loin que l'avion soit allé pour génération de tuyaux.
 	 */
-	var maxPlaneX:Float;
+	var maxHeroX:Float;
 	
-	inline static var PIPE_SPACE:Float = 200.0;
+	inline static var SPACE_BETWEEN_TRAPS:Float = 200.0;
 	
 	inline static var HOLE_HEIGHT_MIN:Float = 50.0;
 	inline static var HOLE_HEIGHT_MAX:Float = 75.0;
 	
 	inline static var PIPE_Y_SHIFT_MAX:Float = 50.0;
 	
-	function updatePipes(t:Float)
+	function generateLandscape(t:Float)
 	{
-		if (plane.x > maxPlaneX)	maxPlaneX = plane.x;
-		//Lib.trace(maxPlaneX);
+		if (hero.x > maxHeroX)	maxHeroX = hero.x;
 		
-		var currModulo:Float = maxPlaneX % PIPE_SPACE;
+		var currModulo:Float = maxHeroX % SPACE_BETWEEN_TRAPS;
 		var isCreating = (currModulo < prevModulo);
 		prevModulo = currModulo;
 		
-		//var creatingOccurence = Math.random();
-		//Lib.trace(creatingOccurence);
-		//var isCreating = creatingOccurence < 0.01;
-		
 		if (isCreating)
 		{
-			var yShift = FlxRandom.intRanged( cast(-PIPE_Y_SHIFT_MAX/2, Int), cast(PIPE_Y_SHIFT_MAX/2, Int));
-			var space = FlxRandom.intRanged(cast(HOLE_HEIGHT_MIN, Int), cast(HOLE_HEIGHT_MAX, Int));
+			var mite:FlxSprite = LandscapeFactory.createStalagmite(hero.x + FlxG.width + FlxRandom.floatRanged(-48, 48), FlxRandom.floatRanged(96, 144));
+			traps.add(mite);
+			add(mite);
 			
-			var pipeTop:FlxSprite = createPipe();
-			pipeTop.scale.x = -1;
-			pipeTop.y = -32 + yShift - space / 2;
-			pipeTop.angle = 180;
 			
-			var pipeBottom:FlxSprite = createPipe();
-			pipeBottom.y = FlxG.stage.stageHeight + 32 - pipeBottom.height + yShift + space / 2;
+			var tite:FlxSprite = LandscapeFactory.createStalactite(hero.x + FlxG.width + FlxRandom.floatRanged(-48, 48), FlxRandom.floatRanged(96, 144));
+			traps.add(tite);
+			add(tite);
 			
-			pipeTop.x = pipeBottom.x = plane.x + FlxG.stage.stageWidth;
+			/*
+			var ring = createRing();
+			rings.add(ring);
+			ring.x = hero.x + FlxG.width + SPACE_BETWEEN_TRAPS / 2 + FlxRandom.floatRanged(-32, 32);
+			ring.y = FlxRandom.floatRanged(32, FlxG.height - 32);
+			add(ring);
+			*/
 			
-			add(pipeTop);
-			add(pipeBottom);
 		}
-	
 	}
-	function createPipe():FlxSprite
+	
+	
+	
+	var rings:FlxSpriteGroup;
+	var waitToRestart:Bool = false;
+	function createRing():FlxSprite
 	{
-		var pipe = new FlxSprite( 0, 0, "assets/images/pipe.png");
-		pipe.scrollFactor.y = 0;
-		pipe.immovable = true;
-		//pipe.velocity.y = FlxRandom.floatRanged( -10, 10);
-		pipes.add(pipe);
-		return pipe;
+		var ring = new FlxSprite();
+		ring.scrollFactor.y = 0;
+		ring.loadGraphic("assets/images/ring.png", true, false, 16, 16);
+		ring.animation.add('spin', [0, 1, 2, 3], 10);
+		ring.animation.play('spin');
+		rings.add(ring);
+		return ring;
 	}
 	
-	function updatePlane()
+	function updateHero()
 	{
 		//	si le bouton est enfoncé ou qu'on est en auto-looping,
 		//	on rotationne progressivement la vélocité de l'avion
 		if (FlxG.mouse.pressed)
 		{
 			moveUp(FlxG.mouse.justPressed);
+			waitToRestart = true;
 		}
 		else
 		{
 			moveForward(FlxG.mouse.justReleased);
+			waitToRestart = false;
 		}
 		
-		
-		
-		
-		
-		
-		var object:FlxObject = cast(plane, FlxObject);
+		var object:FlxObject = cast(hero, FlxObject);
 		if (!object.isOnScreen())
 		{
 			gameOver();
-			
-			//explode();
 		}
 	}
 	
@@ -428,8 +421,15 @@ class PlayState extends FlxState
 		if (FlxG.mouse.justReleased)
 		{
 			Lib.trace("released");
-			this.reset();
-			this.start();
+			if (waitToRestart)
+			{
+				waitToRestart = false;
+			}
+			else
+			{
+				this.reset();
+				this.start();
+			}
 		}
 	}
 	
@@ -438,9 +438,9 @@ class PlayState extends FlxState
 		Lib.trace("gameOver");
 		this.isPlaying = false;
 		
-		plane.acceleration.x = 0.0;
-		plane.acceleration.y = GRAVITY;
-		plane.animation.play('lose');
+		hero.acceleration.x = 0.0;
+		hero.acceleration.y = GRAVITY;
+		hero.animation.play('lose');
 		
 		add(gameOverLabel);
 		
