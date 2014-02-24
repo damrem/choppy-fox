@@ -24,15 +24,15 @@ class Tuto extends FlxSpriteGroup
 		var x1:Float = FlxG.width / 4;
 		var x2:Float = FlxG.width * 3 / 4;
 		var w:Int = 200;
-		var Y:Float = FlxG.height / 3;
+		var Y:Float = FlxG.height * 3 / 4;
 		
 		var up:Hero = new Hero();
 		up.animation.play('up');
 		up.x = x1;
-		up.y = Y - up.height;
+		up.y = Y - up.height - 8;
 		add(up);
 		
-		var upLabel:FlxText = new FlxText(x1 - w / 2, Y, w, "Press to fly up.", 16);
+		var upLabel:FlxText = new FlxText(x1 - w / 2, Y, w, "Press left mouse button to fly up.", 16);
 		upLabel.alignment = 'center';
 		upLabel.scrollFactor.x = upLabel.scrollFactor.y = 0.0;
 		add(upLabel);
@@ -40,7 +40,7 @@ class Tuto extends FlxSpriteGroup
 		var forw:Hero = new Hero();
 		forw.animation.play('forward');
 		forw.x = x2;
-		forw.y = Y - forw.height;
+		forw.y = Y - forw.height - 8;
 		add(forw);
 		
 		var forwLabel:FlxText = new FlxText(x2 -w / 2, Y, w, "Release to move forward.", 16);

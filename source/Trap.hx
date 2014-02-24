@@ -35,6 +35,8 @@ class Trap extends FlxSprite
 		loadGraphic("assets/images/column.png", true, false, 64, 400, false, 'spikes');
 		animation.add('spin', [0, 1, 2], 10);
 		animation.play('spin');
+		width = 48;
+		centerOffsets();
 		scrollFactor.y = 0;
 		immovable = true;
 	}

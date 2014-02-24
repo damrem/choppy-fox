@@ -18,6 +18,9 @@ class Ring extends FlxSprite
 		loadGraphic("assets/images/ring.png", true, false, 16, 16);
 		animation.add('spin', [0, 1, 2, 3], 10);
 		animation.play('spin');
+		width = height = 20;
+		//setOriginToCenter();
+		centerOffsets();
 	}
 	
 	override public function update()

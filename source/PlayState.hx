@@ -36,6 +36,10 @@ class PlayState extends FlxState
 	inline static var GRAVITY:Float = 100.0;
 	inline static var UP:Float = -100.0;
 	
+	var logo:FlxText;
+	var rings:FlxSpriteGroup;
+	var bestScoreLabel:FlxText;
+	var save:FlxSave;
 	var tuto:Tuto;
 	var hud:FlxSpriteGroup;
 	var musicCredit:FlxText;
@@ -46,10 +50,9 @@ class PlayState extends FlxState
 	var gameOverLabel:FlxText;
 	var scoreLabel:FlxText;
 	var score:UInt;
-	var bestScore:UInt;
-	var save:FlxSave;
 	var t:Float;
 	var autoLooping:Bool;
+	var credits:FlxText;
 	
 	/**
 	 * Function that is called up when to state is created to set it up.
@@ -58,7 +61,8 @@ class PlayState extends FlxState
 	{
 		
 		super.create();
-		Lib.trace("create");
+		Lib.trace("create");		
+		
 		FlxG.sound.playMusic("assets/music/11-angel-island-zone-act-2.mp3", 0.1);
 		
 		hud = new FlxSpriteGroup();
@@ -76,9 +80,34 @@ class PlayState extends FlxState
 		rings.scrollFactor.y = 0;
 		add(rings);
 		
-		clickToStartLabel = this.createMessage('CLICK TO START');
-		scoreLabel = createScore();
+		logo = new FlxText(0, FlxG.height / 8, FlxG.width, "CHOPPY FOX", 48);
+		logo.alignment = 'center';
+		
+		clickToStartLabel = createMessage('CLICK TO START');
 		gameOverLabel = createMessage("GAME OVER!\nCLICK TO RESTART...");
+		
+		scoreLabel = createScore(8, 24);
+		bestScoreLabel = createScore(36, 16);
+		
+		credits = new FlxText(8, 0, 200, "damrem");
+		credits.y = FlxG.height - credits.height - 8;
+		
+		MouseEventManager.addSprite(credits, null, onClickCredits);
+		
+		save = new FlxSave();
+		save.bind('tails');
+		Lib.trace(save.data.bestScore);
+		if (save.data.bestScore == null)
+		{
+			setBestScore(0);
+		}
+		else
+		{
+			setBestScore(save.data.bestScore);
+		}
+		hud.add(scoreLabel);
+		//hud.add(scoreSeparator);
+		hud.add(bestScoreLabel);
 		
 		hero = new Hero();
 		add(hero);
@@ -86,6 +115,18 @@ class PlayState extends FlxState
 		add(hud);
 		
 		wait();
+	}
+	
+	function onClickCredits(Credits:FlxSprite) 
+	{
+		FlxG.openURL("http://www.damienremars.com", "_blank");
+	}
+	
+	function setBestScore(bestScore:UInt) 
+	{
+		Lib.trace("setBestScore(" + bestScore);
+		save.data.bestScore = bestScore;
+		bestScoreLabel.text = bestScore + "";
 	}
 	
 	function addBG()
@@ -97,15 +138,6 @@ class PlayState extends FlxState
 		add(new FlxBackdrop("assets/images/bg1.png", 0.8, 0.0, true, false));
 	}
 	
-	function createMusicCredit():FlxText
-	{
-		var musicCredit = new FlxText(FlxG.width - 210, FlxG.height - 20, 200, "Music by PlayOnLoop");
-		musicCredit.scrollFactor.x = musicCredit.scrollFactor.y = 0;
-		musicCredit.alignment = 'right';
-		musicCredit.alpha = 0.1;
-		return musicCredit;
-	}
-	
 	function navigateToPlayOnLoop(sprite:FlxSprite)
 	{
 		FlxG.openURL("http://www.playonloop.com/2013-music-loops/rocket-station/", '_blank');
@@ -114,18 +146,18 @@ class PlayState extends FlxState
 	function createMessage(msg:String):FlxText
 	{
 		var w:Int = 400;
-		var label:FlxText = new FlxText((FlxG.width - w) / 2, FlxG.height * 2 / 3, w, msg, 16);
+		var label:FlxText = new FlxText((FlxG.width - w) / 2, FlxG.height / 2, w, msg, 16);
 		label.alignment = 'center';
 		label.scrollFactor.x = label.scrollFactor.y = 0.0;
 		return label;
 	}
 	
-	function createScore():FlxText
+	function createScore(Y:Float, Size:UInt):FlxText
 	{
 		var w:Int = 200;
-		var label:FlxText = new FlxText(FlxG.stage.stageWidth - w - 10, 10, w, "0", 16);
+		var label:FlxText = new FlxText(FlxG.stage.stageWidth - w - 8, Y, w, "0", Size);
 		label.alignment = 'right';
-		label.scrollFactor.x = label.scrollFactor.y = 0.0;
+		label.scrollFactor.x = label.scrollFactor.y = 0;
 		return label;
 	}
 	
@@ -151,7 +183,10 @@ class PlayState extends FlxState
 		maxHeroX = hero.x;
 		hud.remove(gameOverLabel);
 		hud.add(tuto);
+		hud.add(logo);
 		hud.add(clickToStartLabel);
+		hud.add(credits);
+		
 	}
 	
 	function killSprite(sprite:FlxSprite) 
@@ -170,8 +205,6 @@ class PlayState extends FlxState
 		Lib.trace("start");
 		
 		state = PLAYING;
-		
-		hud.add(scoreLabel);
 		
 		FlxG.camera.follow(this.hero, FlxCamera.STYLE_PLATFORMER, new FlxPoint(-FlxG.width/3, 0));
 		
@@ -231,7 +264,13 @@ class PlayState extends FlxState
 	
 	function updateWaiting()
 	{
-		if (FlxG.mouse.justReleased)
+		if (FlxG.mouse.justReleased 
+		&& 
+		!(FlxG.mouse.x >= credits.x 
+		&& FlxG.mouse.x <= credits.x + credits.width
+		&& FlxG.mouse.y >= credits.y
+		&& FlxG.mouse.y <= credits.y + credits.height)
+		)
 		{
 			Lib.trace("released");
 			arrive();
@@ -244,15 +283,11 @@ class PlayState extends FlxState
 		Lib.trace("arrive");
 		state = ARRIVING;
 		
+		hud.remove(logo);
+		hud.remove(credits);
 		hud.remove(clickToStartLabel);
 		hud.remove(gameOverLabel);
-		hud.remove(tuto);
-		
-		//FlxG.camera.follow(null);
-		
-		//FlxG.camera.setPosition(0, 0);
-		//FlxG.camera.x = 0;
-		
+		hud.remove(tuto);		
 		
 		moveForward(true);
 		hero.acceleration.y = 0;
@@ -309,7 +344,6 @@ class PlayState extends FlxState
 	var maxHeroX:Float;
 	
 	inline static var SPACE_BETWEEN_TRAPS:Float = 200.0;
-	
 	function generateLandscape(t:Float)
 	{
 		if (hero.x > maxHeroX)	maxHeroX = hero.x;
@@ -350,10 +384,6 @@ class PlayState extends FlxState
 		}
 	}
 	
-	
-	
-	var rings:FlxSpriteGroup;
-	//var waitToRestart:Bool = false;
 	function createRing():FlxSprite
 	{
 		var ring = new FlxSprite();
@@ -391,6 +421,11 @@ class PlayState extends FlxState
 	{
 		Lib.trace("gameOver");
 		state = GAME_OVER;
+		
+		if (score > save.data.bestScore)
+		{
+			setBestScore(score);
+		}
 		
 		hero.acceleration.x = 0.0;
 		hero.acceleration.y = GRAVITY;
