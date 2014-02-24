@@ -26,18 +26,21 @@ import flixel.group.FlxGroup;
  */
 class PlayState extends FlxState
 {
-	inline static var MAX_SPEED:Float = 125.0;
+	inline static var WAITING:String = 'waiting';
+	inline static var ARRIVING:String = 'arriving';
+	inline static var PLAYING:String = 'playing';
+	inline static var GAME_OVER:String = 'gameOver';
+	var state:String;
+	
 	inline static var FORWARD:Float = 150.0;
 	inline static var GRAVITY:Float = 100.0;
 	inline static var UP:Float = -100.0;
-	inline static var FRICTION:Float = 50.0;
 	
+	var tuto:Tuto;
 	var hud:FlxSpriteGroup;
 	var musicCredit:FlxText;
 	var hero:FlxSprite;
-	var clickToStartMessage:FlxText;
-	var isPlaying:Bool;
-	var controlIsUp:Int;
+	var clickToStartLabel:FlxText;
 	var bg:FlxBackdrop;
 	var traps:FlxSpriteGroup;
 	var gameOverLabel:FlxText;
@@ -53,56 +56,54 @@ class PlayState extends FlxState
 	 */
 	override public function create():Void
 	{
-		FlxG.sound.playMusic("assets/music/11-angel-island-zone-act-2.mp3", 0.1);
 		
-		Lib.trace("create");
 		super.create();
+		Lib.trace("create");
+		FlxG.sound.playMusic("assets/music/11-angel-island-zone-act-2.mp3", 0.1);
 		
 		hud = new FlxSpriteGroup();
 		hud.scrollFactor.x = hud.scrollFactor.y = 0;
 		
-		bg = new FlxBackdrop("assets/images/bg5.png", 0.0, 0.0, false, false);
-		add(bg);
-		bg = new FlxBackdrop("assets/images/bg4.png", 0.1, 0.0, true, false);
-		add(bg);
-		bg = new FlxBackdrop("assets/images/bg3.png", 0.2, 0.0, true, false);
-		add(bg);
-		bg = new FlxBackdrop("assets/images/bg2.png", 0.4, 0.0, true, false);
-		add(bg);
-		bg = new FlxBackdrop("assets/images/bg1.png", 0.8, 0.0, true, false);
-		add(bg);
+		tuto = new Tuto();
 		
-		hero = createHero();
-		add(hero);
-		
-		FlxG.camera.follow(this.hero, FlxCamera.STYLE_PLATFORMER);
-		
+		addBG();
 		
 		traps = new FlxSpriteGroup();
 		traps.scrollFactor.y = 0;
 		add(traps);
+		
 		rings = new FlxSpriteGroup(3);
 		rings.scrollFactor.y = 0;
 		add(rings);
 		
-		clickToStartMessage = this.createMessage('CLICK TO START');
-		hud.add(this.clickToStartMessage);
-		
+		clickToStartLabel = this.createMessage('CLICK TO START');
 		scoreLabel = createScore();
+		gameOverLabel = createMessage("GAME OVER!\nCLICK TO RESTART...");
 		
-		reset();
+		hero = new Hero();
+		add(hero);
+
+		add(hud);
 		
-		musicCredit = new FlxText(FlxG.width - 210, FlxG.height - 20, 200, "Music by PlayOnLoop");
+		wait();
+	}
+	
+	function addBG()
+	{
+		add(new FlxBackdrop("assets/images/bg5.png", 0.0, 0.0, false, false));
+		add(new FlxBackdrop("assets/images/bg4.png", 0.1, 0.0, true, false));
+		add(new FlxBackdrop("assets/images/bg3.png", 0.2, 0.0, true, false));
+		add(new FlxBackdrop("assets/images/bg2.png", 0.4, 0.0, true, false));
+		add(new FlxBackdrop("assets/images/bg1.png", 0.8, 0.0, true, false));
+	}
+	
+	function createMusicCredit():FlxText
+	{
+		var musicCredit = new FlxText(FlxG.width - 210, FlxG.height - 20, 200, "Music by PlayOnLoop");
 		musicCredit.scrollFactor.x = musicCredit.scrollFactor.y = 0;
 		musicCredit.alignment = 'right';
 		musicCredit.alpha = 0.1;
-		//hud.add(musicCredit);
-		
-		MouseEventManager.addSprite(musicCredit, null, navigateToPlayOnLoop);
-		
-		gameOverLabel = createMessage("GAME OVER!\nCLICK TO RESTART...");
-		
-		add(hud);
+		return musicCredit;
 	}
 	
 	function navigateToPlayOnLoop(sprite:FlxSprite)
@@ -110,31 +111,10 @@ class PlayState extends FlxState
 		FlxG.openURL("http://www.playonloop.com/2013-music-loops/rocket-station/", '_blank');
 	}
 	
-	private function createHero():FlxSprite
-	{
-		
-		var sprite = new FlxSprite();
-		sprite.loadGraphic("assets/images/tails.png", true, false, 36, 36, true, 'plane');
-		sprite.animation.add('up', [0, 1, 2], 10);
-		sprite.animation.add('forward', [3, 4, 5], 10);
-		sprite.animation.add('lose', [6, 7], 10);
-		sprite.setOriginToCenter();
-		
-		sprite.width = sprite.height = 20;
-		sprite.maxVelocity.x = MAX_SPEED;
-		sprite.drag.x = FRICTION;
-		sprite.centerOffsets();
-		
-		sprite.scrollFactor.y = 0.0;
-		
-		return sprite;
-	}
-	
 	function createMessage(msg:String):FlxText
 	{
-		var stg:Stage = FlxG.stage;
 		var w:Int = 400;
-		var label:FlxText = new FlxText((stg.stageWidth - w) / 2, stg.stageHeight / 2, w, msg, 16);
+		var label:FlxText = new FlxText((FlxG.width - w) / 2, FlxG.height * 2 / 3, w, msg, 16);
 		label.alignment = 'center';
 		label.scrollFactor.x = label.scrollFactor.y = 0.0;
 		return label;
@@ -149,24 +129,29 @@ class PlayState extends FlxState
 		return label;
 	}
 	
-	function reset()
+	function wait()
 	{
-		Lib.trace("reset");
-		isPlaying = false;
+		
+		Lib.trace("wait");
+		state = WAITING;
 		
 		setScore(0);
-		
-		controlIsUp = -1;
 		
 		rings.forEach(killSprite);
 		traps.forEach(killSprite);
 		
+		//FlxG.camera = new FlxCamera();
+		FlxG.camera.follow(null);
+		
 		hero.animation.play('forward');
-		hero.setPosition(FlxG.width / 4, FlxG.height/ 2);
+		hero.setPosition(-36, FlxG.height/ 3);
 		hero.velocity.x = hero.velocity.y = 0.0;
-		hero.angle = 0.0;
+		hero.acceleration.y = 0;
 		
 		maxHeroX = hero.x;
+		hud.remove(gameOverLabel);
+		hud.add(tuto);
+		hud.add(clickToStartLabel);
 	}
 	
 	function killSprite(sprite:FlxSprite) 
@@ -183,92 +168,108 @@ class PlayState extends FlxState
 	private function start()
 	{
 		Lib.trace("start");
-		hud.remove(clickToStartMessage);
-		hud.remove(gameOverLabel);
+		
+		state = PLAYING;
 		
 		hud.add(scoreLabel);
 		
-		hero.visible = true;
+		FlxG.camera.follow(this.hero, FlxCamera.STYLE_PLATFORMER, new FlxPoint(-FlxG.width/3, 0));
+		
 		hero.animation.play('forward');
-		//plane.velocity.x = 100.0;
-		//plane.acceleration.y = JETPACK_INTENSITY;
-		
-		isPlaying = true;
-		waitToRestart = false;
 	}
 	
-	function moveForward(startAnim:Bool)
-	{
-		hero.acceleration.x = FORWARD;
-		hero.acceleration.y = GRAVITY;
-		if (startAnim)
-		{
-			hero.animation.play('forward');
-		}
-		
-	}
 	
-	function moveUp(startAnim:Bool)
-	{
-		hero.acceleration.x = 0.0;
-		hero.acceleration.y = UP;
-		if (startAnim)
-		{
-			hero.animation.play('up');
-		}
-	}
-
-	/**
-	 * Function that is called when this state is destroyed - you might want to
-	 * consider setting all objects this state uses to null to help garbage collection.
-	 */
-	override public function destroy():Void
-	{
-		super.destroy();
-	}
 
 	/**
 	 * Function that is called once every frame.
 	 */
 	override public function update():Void
 	{	
+		//Lib.trace(state);
 		t = Lib.getTimer() / 1000;
-		if (this.isPlaying)
+		if (state == PLAYING)
 		{
 			this.updatePlaying(t);
 		}
-		else
+		else if(state == ARRIVING)
+		{
+			this.updateArriving();
+		}
+		else if(state == WAITING)
 		{
 			this.updateWaiting();
+		}
+		else if (state == GAME_OVER)
+		{
+			this.updateGameOver();
 		}
 		if(FlxG.keys.justReleased.D)
 		{
 			FlxG.debugger.drawDebug = !FlxG.debugger.drawDebug;
 		}
-		/*
-		if (FlxG.mouse.justReleased)
-		{
-			explode(FlxG.mouse.x, FlxG.mouse.y);
-		}
-		*/
 		
 		super.update();
+	}
+	
+	function updateArriving() 
+	{
+		if (hero.x >= FlxG.width / 3)
+		{
+			start();
+		}
+	}
+	
+	function updateGameOver() 
+	{
+		if (FlxG.mouse.justReleased)
+		{
+			Lib.trace("justReleased");
+			
+			FlxG.resetState();
+		}
+	}
+	
+	function updateWaiting()
+	{
+		if (FlxG.mouse.justReleased)
+		{
+			Lib.trace("released");
+			arrive();
+			
+		}
+	}
+	
+	function arrive() 
+	{
+		Lib.trace("arrive");
+		state = ARRIVING;
+		
+		hud.remove(clickToStartLabel);
+		hud.remove(gameOverLabel);
+		hud.remove(tuto);
+		
+		//FlxG.camera.follow(null);
+		
+		//FlxG.camera.setPosition(0, 0);
+		//FlxG.camera.x = 0;
+		
+		
+		moveForward(true);
+		hero.acceleration.y = 0;
+	}
+	
+	function updatePlaying(t:Float) 
+	{
+		updateWorldBounds();
+		generateLandscape(t);
+		updateHero();
+		FlxG.overlap(hero, rings, pickUpRing);
+		FlxG.collide(hero, traps, loseLife);
 	}
 	
 	function updateWorldBounds()
 	{
 		FlxG.worldBounds.x = hero.x - 100;		
-	}
-	
-	function updatePlaying(t:Float) 
-	{
-		//Lib.trace("updatePlaying");
-		updateWorldBounds();
-		generateLandscape(t);
-		updateHero();
-		//updateScore();
-		FlxG.overlap(hero, rings, pickUpRing);
-		FlxG.collide(hero, traps, loseLife);
 	}
 	
 	function pickUpRing(hero:FlxObject, ring:FlxObject) 
@@ -309,11 +310,6 @@ class PlayState extends FlxState
 	
 	inline static var SPACE_BETWEEN_TRAPS:Float = 200.0;
 	
-	inline static var HOLE_HEIGHT_MIN:Float = 50.0;
-	inline static var HOLE_HEIGHT_MAX:Float = 75.0;
-	
-	inline static var PIPE_Y_SHIFT_MAX:Float = 50.0;
-	
 	function generateLandscape(t:Float)
 	{
 		if (hero.x > maxHeroX)	maxHeroX = hero.x;
@@ -349,24 +345,15 @@ class PlayState extends FlxState
 			var mite:Trap = LandscapeFactory.createStalagmite(miteX, miteHeight, miteXRange, miteYRange, miteSpeed);
 			traps.add(mite);
 			
-			/*
-			var titeHeight:Float = FlxRandom.floatRanged(96, 144);
-			var tite:FlxSprite = LandscapeFactory.createStalactite(hero.x + FlxG.width + FlxRandom.floatRanged(-48, 48), titeHeight);
-			traps.add(tite);
-			*/
-			
 			var ring = new Ring(mite);
 			rings.add(ring);
-			//ring.x = hero.x + FlxG.width + SPACE_BETWEEN_TRAPS / 2 + FlxRandom.floatRanged( -16, 16);
-			//Lib.trace((titeHeight - 32) + ", " + (FlxG.height - miteHeight + 32));
-			//ring.y = FlxRandom.floatRanged(32, FlxG.height - miteHeight + 32);
 		}
 	}
 	
 	
 	
 	var rings:FlxSpriteGroup;
-	var waitToRestart:Bool = false;
+	//var waitToRestart:Bool = false;
 	function createRing():FlxSprite
 	{
 		var ring = new FlxSprite();
@@ -385,12 +372,12 @@ class PlayState extends FlxState
 		if (FlxG.mouse.pressed)
 		{
 			moveUp(FlxG.mouse.justPressed);
-			waitToRestart = true;
+			//waitToRestart = true;
 		}
 		else
 		{
 			moveForward(FlxG.mouse.justReleased);
-			waitToRestart = false;
+			//waitToRestart = false;
 		}
 		
 		var object:FlxObject = cast(hero, FlxObject);
@@ -400,31 +387,10 @@ class PlayState extends FlxState
 		}
 	}
 	
-	
-	
-	
-	
-	function updateWaiting()
-	{
-		if (FlxG.mouse.justReleased)
-		{
-			Lib.trace("released");
-			if (waitToRestart)
-			{
-				waitToRestart = false;
-			}
-			else
-			{
-				this.reset();
-				this.start();
-			}
-		}
-	}
-	
 	function gameOver()
 	{
 		Lib.trace("gameOver");
-		this.isPlaying = false;
+		state = GAME_OVER;
 		
 		hero.acceleration.x = 0.0;
 		hero.acceleration.y = GRAVITY;
@@ -434,6 +400,35 @@ class PlayState extends FlxState
 		
 		FlxG.camera.shake(0.01, 0.5);
 		FlxG.sound.play("assets/sounds/lose.mp3");
-		//if(score 
+	}
+	
+	function moveForward(startAnim:Bool)
+	{
+		hero.acceleration.x = FORWARD;
+		hero.acceleration.y = GRAVITY;
+		if (startAnim)
+		{
+			hero.animation.play('forward');
+		}
+		
+	}
+	
+	function moveUp(startAnim:Bool)
+	{
+		hero.acceleration.x = 0.0;
+		hero.acceleration.y = UP;
+		if (startAnim)
+		{
+			hero.animation.play('up');
+		}
+	}
+
+	/**
+	 * Function that is called when this state is destroyed - you might want to
+	 * consider setting all objects this state uses to null to help garbage collection.
+	 */
+	override public function destroy():Void
+	{
+		super.destroy();
 	}
 }
