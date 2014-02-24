@@ -11,46 +11,17 @@ import flixel.group.FlxTypedGroup.FlxTypedGroup;
  */
 class LandscapeFactory
 {	
-	public static function createStalagmite(x:Float, height:Float=64):FlxSprite
+	public static function createStalagmite(x:Float, height:Float=64, xRange:Float=0, yRange:Float=0, speed:Float=0):Trap
 	{
-		var sprite = new FlxSprite();
-		sprite.loadGraphic("assets/images/column.png", true, false, 64, 400, false, 'spikes');
-		sprite.animation.add('spin', [0, 1, 2], 10);
-		sprite.animation.play('spin');
-		sprite.scrollFactor.y = 0;
-		sprite.immovable = true;
-		
-		sprite.x = x;
-		sprite.y = FlxG.height - height;
-		
-		return sprite;
+		var trap = new Trap(x, FlxG.height - height, xRange, yRange, speed);
+		return trap;
 	}
-	
-	public static function createStalactite(x:Float, height:Float=64):FlxSprite
+	/*
+	public static function createStalactite(x:Float, height:Float=64, xRange:Float=0, yRange:Float=0, speed:Float=0):FlxSprite
 	{
-		var sprite = createStalagmite(x);
-		sprite.angle = 180;
-		sprite.y = height - sprite.height;
-		return sprite;
+		var trap = createStalagmite(x, height - 400, xRange, yRange, speed);
+		trap.angle = 180;
+		return trap;
 	}
-	
-	public static function createJaw()
-	{
-		
-	}
-	
-	public static function createSlide()
-	{
-		
-	}
-	
-	public static function createDouble()
-	{
-		
-	}
-	
-	
-	
-	
-	
+	*/
 }

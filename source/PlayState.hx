@@ -32,13 +32,14 @@ class PlayState extends FlxState
 	inline static var UP:Float = -100.0;
 	inline static var FRICTION:Float = 50.0;
 	
+	var hud:FlxSpriteGroup;
 	var musicCredit:FlxText;
 	var hero:FlxSprite;
 	var clickToStartMessage:FlxText;
 	var isPlaying:Bool;
 	var controlIsUp:Int;
 	var bg:FlxBackdrop;
-	var traps:FlxTypedGroup<FlxSprite>;
+	var traps:FlxSpriteGroup;
 	var gameOverLabel:FlxText;
 	var scoreLabel:FlxText;
 	var score:UInt;
@@ -52,28 +53,40 @@ class PlayState extends FlxState
 	 */
 	override public function create():Void
 	{
-		FlxG.sound.playMusic("assets/music/POL-rocket-station-short.wav", 0.1);
+		FlxG.sound.playMusic("assets/music/11-angel-island-zone-act-2.mp3", 0.1);
 		
 		Lib.trace("create");
 		super.create();
 		
-		//save = new FlxSave();
+		hud = new FlxSpriteGroup();
+		hud.scrollFactor.x = hud.scrollFactor.y = 0;
 		
-		bg = new FlxBackdrop("assets/images/bg.png", 0.8, 0.0, true, false);
+		bg = new FlxBackdrop("assets/images/bg5.png", 0.0, 0.0, false, false);
+		add(bg);
+		bg = new FlxBackdrop("assets/images/bg4.png", 0.1, 0.0, true, false);
+		add(bg);
+		bg = new FlxBackdrop("assets/images/bg3.png", 0.2, 0.0, true, false);
+		add(bg);
+		bg = new FlxBackdrop("assets/images/bg2.png", 0.4, 0.0, true, false);
+		add(bg);
+		bg = new FlxBackdrop("assets/images/bg1.png", 0.8, 0.0, true, false);
 		add(bg);
 		
-		hero = createPlane();
+		hero = createHero();
 		add(hero);
 		
 		FlxG.camera.follow(this.hero, FlxCamera.STYLE_PLATFORMER);
 		
 		
-		traps = new FlxTypedGroup<FlxSprite>();
-		rings = new FlxSpriteGroup(10);
+		traps = new FlxSpriteGroup();
+		traps.scrollFactor.y = 0;
+		add(traps);
+		rings = new FlxSpriteGroup(3);
 		rings.scrollFactor.y = 0;
+		add(rings);
 		
 		clickToStartMessage = this.createMessage('CLICK TO START');
-		add(this.clickToStartMessage);
+		hud.add(this.clickToStartMessage);
 		
 		scoreLabel = createScore();
 		
@@ -83,17 +96,13 @@ class PlayState extends FlxState
 		musicCredit.scrollFactor.x = musicCredit.scrollFactor.y = 0;
 		musicCredit.alignment = 'right';
 		musicCredit.alpha = 0.1;
-		add(musicCredit);
+		//hud.add(musicCredit);
 		
 		MouseEventManager.addSprite(musicCredit, null, navigateToPlayOnLoop);
 		
 		gameOverLabel = createMessage("GAME OVER!\nCLICK TO RESTART...");
 		
-		//explode();
-		
-		
-		
-		
+		add(hud);
 	}
 	
 	function navigateToPlayOnLoop(sprite:FlxSprite)
@@ -101,24 +110,24 @@ class PlayState extends FlxState
 		FlxG.openURL("http://www.playonloop.com/2013-music-loops/rocket-station/", '_blank');
 	}
 	
-	private function createPlane():FlxSprite
+	private function createHero():FlxSprite
 	{
 		
-		var plane = new FlxSprite();
-		plane.loadGraphic("assets/images/tails.png", true, false, 36, 36, true, 'plane');
-		plane.animation.add('up', [0, 1, 2], 10);
-		plane.animation.add('forward', [3, 4, 5], 10);
-		plane.animation.add('lose', [6, 7], 10);
-		plane.setOriginToCenter();
+		var sprite = new FlxSprite();
+		sprite.loadGraphic("assets/images/tails.png", true, false, 36, 36, true, 'plane');
+		sprite.animation.add('up', [0, 1, 2], 10);
+		sprite.animation.add('forward', [3, 4, 5], 10);
+		sprite.animation.add('lose', [6, 7], 10);
+		sprite.setOriginToCenter();
 		
-		plane.width = plane.height = 25;
-		plane.maxVelocity.x = MAX_SPEED;
-		plane.drag.x = FRICTION;
-		plane.centerOffsets();
+		sprite.width = sprite.height = 20;
+		sprite.maxVelocity.x = MAX_SPEED;
+		sprite.drag.x = FRICTION;
+		sprite.centerOffsets();
 		
-		plane.scrollFactor.y = 0.0;
+		sprite.scrollFactor.y = 0.0;
 		
-		return plane;
+		return sprite;
 	}
 	
 	function createMessage(msg:String):FlxText
@@ -149,19 +158,20 @@ class PlayState extends FlxState
 		
 		controlIsUp = -1;
 		
-		traps.forEach(recyclePipe);
+		rings.forEach(killSprite);
+		traps.forEach(killSprite);
 		
-		var stg:Stage = FlxG.stage;
-		hero.setPosition(stg.stageWidth / 4, stg.stageHeight / 2);
+		hero.animation.play('forward');
+		hero.setPosition(FlxG.width / 4, FlxG.height/ 2);
 		hero.velocity.x = hero.velocity.y = 0.0;
 		hero.angle = 0.0;
 		
 		maxHeroX = hero.x;
 	}
 	
-	function recyclePipe(pipe:FlxSprite) 
+	function killSprite(sprite:FlxSprite) 
 	{
-		pipe.kill();
+		sprite.kill();
 	}
 	
 	function setScore(_score:UInt)
@@ -173,10 +183,10 @@ class PlayState extends FlxState
 	private function start()
 	{
 		Lib.trace("start");
-		remove(clickToStartMessage);
-		remove(gameOverLabel);
+		hud.remove(clickToStartMessage);
+		hud.remove(gameOverLabel);
 		
-		add(scoreLabel);
+		hud.add(scoreLabel);
 		
 		hero.visible = true;
 		hero.animation.play('forward');
@@ -247,14 +257,7 @@ class PlayState extends FlxState
 	
 	function updateWorldBounds()
 	{
-		//FIXME le x du worldbounds augmente un peu trop et l'avion se retrouve hors-world
-		FlxG.worldBounds.x = hero.x - 100;
-		//FlxG.worldBounds.y = plane.y - 100;
-		//Lib.trace(bg.getScreenXY());
-		//Lib.trace("world: " + FlxG.worldBounds);
-		//Lib.trace("plane:" + plane);
-		//Lib.trace(FlxG.worldBounds.containsFlxPoint(new FlxPoint(plane.x, plane.y)));
-		
+		FlxG.worldBounds.x = hero.x - 100;		
 	}
 	
 	function updatePlaying(t:Float) 
@@ -263,28 +266,16 @@ class PlayState extends FlxState
 		updateWorldBounds();
 		generateLandscape(t);
 		updateHero();
-		updateScore();
-		FlxG.collide(hero, traps, collide);
+		//updateScore();
+		FlxG.overlap(hero, rings, pickUpRing);
+		FlxG.collide(hero, traps, loseLife);
 	}
 	
-	function updateScore()
+	function pickUpRing(hero:FlxObject, ring:FlxObject) 
 	{
-		//Lib.trace("updateScore");
-		var nextPipe:FlxSprite = traps.getFirstAlive();
-		if (nextPipe != null)
-		{
-			if(hero.x > nextPipe.x)
-			{
-				traps.getFirstAlive().alpha = 0.5;
-				traps.getFirstAlive().set_alive(false);
-				traps.getFirstAlive().alpha = 0.5;
-				traps.getFirstAlive().set_alive(false);
-				setScore(score + 1);
-				
-				FlxG.sound.play("assets/sounds/score.mp3");
-			}
-		}
-		//trace(pipes);
+		ring.kill();
+		setScore(score + 1);
+		FlxG.sound.play("assets/sounds/ring.mp3");
 	}
 	
 	var explosion:FlxEmitterExt;
@@ -295,31 +286,9 @@ class PlayState extends FlxState
 	static inline var EXPLOSION_DISTANCE_RANGE:Float = 75.0;
 	static inline var EXPLOSION_QUANTITY:Int = 100;
 	
-	function explode()
-	{
-		//Lib.trace("explode(" + X + ", " + Y);
-		//Lib.trace(plane.y);
-		hero.visible = false;
-		
-		explosion = new FlxEmitterExt();
-		
-		explosion.setMotion(0, EXPLOSION_DISTANCE, EXPLOSION_LIFESPAN, 360, EXPLOSION_DISTANCE_RANGE, EXPLOSION_LIFESPAN_RANGE);// (0, 0.5, 0.05, 360, 200, 1.8);
-		
-		explosion.makeParticles("assets/images/explosion-particle.png", EXPLOSION_QUANTITY, 0, true, 0);
-		explosion.setAlpha(1, 1, 0, 0);
-		
-		explosion.at(hero);
-		add(explosion);
-		
-		explosion.setAll('scrollFactor', new FlxPoint(1.0, 0.0));
-		
-		explosion.start(true, EXPLOSION_LIFESPAN, 0.1, EXPLOSION_QUANTITY, EXPLOSION_LIFESPAN);
-		explosion.update();
-		
-		
-	}
 	
-	function collide(hero:FlxObject, trap:FlxObject)
+	
+	function loseLife(hero:FlxObject, trap:FlxObject)
 	{
 		Lib.trace("collide");
 		//explode();
@@ -355,23 +324,42 @@ class PlayState extends FlxState
 		
 		if (isCreating)
 		{
-			var mite:FlxSprite = LandscapeFactory.createStalagmite(hero.x + FlxG.width + FlxRandom.floatRanged(-48, 48), FlxRandom.floatRanged(96, 144));
+			var miteX:Float = hero.x + FlxG.width + FlxRandom.floatRanged( -48, 48);
+			var miteHeight:Float = FlxRandom.floatRanged(64, FlxG.height - 96);
+			
+			var movementType = FlxRandom.intRanged(0, 3);
+			
+			var miteXRange:Float = 0;
+			var miteYRange:Float = 0;
+			var miteSpeed:Float = 0;
+			
+			if (movementType == 2)
+			{
+				miteXRange = FlxRandom.floatRanged(2, 4) * 16;
+				miteYRange = 0;
+				miteSpeed = FlxRandom.floatRanged(2, 4) * 8;
+			}
+			else if (movementType == 3)
+			{
+				miteXRange = 0;
+				miteYRange = FlxRandom.intRanged(2, 4) * 16;
+				miteSpeed = FlxRandom.intRanged(2, 4) * 8;
+			}
+			
+			var mite:Trap = LandscapeFactory.createStalagmite(miteX, miteHeight, miteXRange, miteYRange, miteSpeed);
 			traps.add(mite);
-			add(mite);
-			
-			
-			var tite:FlxSprite = LandscapeFactory.createStalactite(hero.x + FlxG.width + FlxRandom.floatRanged(-48, 48), FlxRandom.floatRanged(96, 144));
-			traps.add(tite);
-			add(tite);
 			
 			/*
-			var ring = createRing();
-			rings.add(ring);
-			ring.x = hero.x + FlxG.width + SPACE_BETWEEN_TRAPS / 2 + FlxRandom.floatRanged(-32, 32);
-			ring.y = FlxRandom.floatRanged(32, FlxG.height - 32);
-			add(ring);
+			var titeHeight:Float = FlxRandom.floatRanged(96, 144);
+			var tite:FlxSprite = LandscapeFactory.createStalactite(hero.x + FlxG.width + FlxRandom.floatRanged(-48, 48), titeHeight);
+			traps.add(tite);
 			*/
 			
+			var ring = new Ring(mite);
+			rings.add(ring);
+			//ring.x = hero.x + FlxG.width + SPACE_BETWEEN_TRAPS / 2 + FlxRandom.floatRanged( -16, 16);
+			//Lib.trace((titeHeight - 32) + ", " + (FlxG.height - miteHeight + 32));
+			//ring.y = FlxRandom.floatRanged(32, FlxG.height - miteHeight + 32);
 		}
 	}
 	
@@ -386,7 +374,7 @@ class PlayState extends FlxState
 		ring.loadGraphic("assets/images/ring.png", true, false, 16, 16);
 		ring.animation.add('spin', [0, 1, 2, 3], 10);
 		ring.animation.play('spin');
-		rings.add(ring);
+		//rings.add(ring);
 		return ring;
 	}
 	
@@ -442,10 +430,10 @@ class PlayState extends FlxState
 		hero.acceleration.y = GRAVITY;
 		hero.animation.play('lose');
 		
-		add(gameOverLabel);
+		hud.add(gameOverLabel);
 		
 		FlxG.camera.shake(0.01, 0.5);
-		FlxG.sound.play("assets/sounds/explosion.mp3");
+		FlxG.sound.play("assets/sounds/lose.mp3");
 		//if(score 
 	}
 }
