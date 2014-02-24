@@ -399,7 +399,7 @@ class PlayState extends FlxState
 		hud.add(gameOverLabel);
 		
 		FlxG.camera.shake(0.01, 0.5);
-		FlxG.sound.play("assets/sounds/lose.mp3");
+		FlxG.sound.playMusic("assets/music/18-game-over.mp3", 0.1);
 	}
 	
 	function moveForward(startAnim:Bool)

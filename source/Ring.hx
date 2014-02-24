@@ -24,7 +24,7 @@ class Ring extends FlxSprite
 	{
 		super.update();
 		x = targetTrap.x + (targetTrap.width - width) / 2;
-		y = targetTrap.y - height;
+		y = targetTrap.y - height - 4;
 	}
 	
 }

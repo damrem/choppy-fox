@@ -3,6 +3,7 @@ import flixel.FlxSprite;
 import flixel.FlxG;
 import flixel.group.FlxSpriteGroup;
 import flixel.text.FlxText;
+import flixel.util.FlxSave;
 
 /**
  * ...
@@ -42,7 +43,7 @@ class Tuto extends FlxSpriteGroup
 		forw.y = Y - forw.height;
 		add(forw);
 		
-		var forwLabel:FlxText = new FlxText(x2 -w / 2, Y, w, "Release to fly forward.", 16);
+		var forwLabel:FlxText = new FlxText(x2 -w / 2, Y, w, "Release to move forward.", 16);
 		forwLabel.alignment = 'center';
 		forwLabel.scrollFactor.x = forwLabel.scrollFactor.y = 0.0;
 		add(forwLabel);
